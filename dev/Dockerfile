@@ -1,4 +1,4 @@
-FROM aomgroup/cli-base:base-7.3.11-build-1.0.0
+FROM aomgroup/cli-base:base-7.3.11-latest
 
 USER app
 
