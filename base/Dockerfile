@@ -39,7 +39,7 @@ RUN set -eux; \
 	mkdir -p "$PHP_INI_DIR/conf.d"; \
     # allow running as an arbitrary user (https://github.com/docker-library/php/issues/743)
 	mkdir -p $APP_DIR; \
-	groupadd -r $GROUP && useradd -r -g $GROUP $USER \
+	groupadd -r $GROUP && useradd -r -g $GROUP $USER; \
 	chown $USER:$GROUP $APP_DIR; \
 	chmod 777 $APP_DIR
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
