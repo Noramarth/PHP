@@ -91,7 +91,10 @@ ENV PHP_CONFIG_OPTIONS \
     --with-curl \
     --with-libedit \
     --with-zlib \
-    --with-tsrm-pthreads
+    --with-tsrm-pthreads \
+    --with-openssl \
+    --enable-phar \
+    --enable-filter
 RUN export \
 		CFLAGS="$PHP_CFLAGS" \
 		CPPFLAGS="$PHP_CPPFLAGS" \
