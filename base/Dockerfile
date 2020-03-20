@@ -1,5 +1,5 @@
 FROM debian:buster-slim
-ENV PHP_VERSION 7.3.11
+ENV PHP_VERSION 7.4.4
 MAINTAINER noramarth@aom.ro
 ENV USER app
 ENV GROUP app
@@ -19,7 +19,13 @@ ENV PHPIZE_DEPS \
 		make \
 		pkgconf \
 		re2c
-ENV PHP_RUNTIME_DEPS ""
+ENV PHP_RUNTIME_DEPS \
+        libcurl4 \
+        libonig5 \
+        libedit2 \
+        libsodium23 \
+        libssl1.1 \
+        libargon2-1
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
@@ -62,13 +68,13 @@ RUN set -eux; \
     apt-mark manual $savedAptMark > /dev/null; \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
 ENV PHP_COMPILE_DEPS \
-    libargon2-dev \
     libcurl4-openssl-dev \
     libedit-dev \
     libsodium-dev \
     libssl-dev \
     libxml2-dev \
     zlib1g-dev \
+    libonig-dev \
     libargon2-0-dev
 ENV PHP_CONFIG_OPTIONS \
     --disable-all \
@@ -79,10 +85,9 @@ ENV PHP_CONFIG_OPTIONS \
     --with-iconv \
     --enable-json \
     --with-pcre-jit \
-    --with-pcre-regex \
     --enable-session \
     --enable-tokenizer \
-    --enable-libxml \
+    --with-libxml \
     --enable-simplexml \
     --enable-opcache \
     --enable-mysqlnd \
