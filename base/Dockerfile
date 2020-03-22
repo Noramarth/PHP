@@ -101,6 +101,7 @@ ENV PHP_CONFIG_OPTIONS \
     --with-tsrm-pthreads \
     --with-openssl \
     --enable-phar \
+    --enable-dom \
     --enable-filter
 RUN export \
 		CFLAGS="$PHP_CFLAGS" \
