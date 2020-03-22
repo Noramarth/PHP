@@ -102,6 +102,8 @@ ENV PHP_CONFIG_OPTIONS \
     --with-openssl \
     --enable-phar \
     --enable-dom \
+    --enable-pdo \
+    --with-pdo-mysql \
     --enable-filter
 RUN export \
 		CFLAGS="$PHP_CFLAGS" \
