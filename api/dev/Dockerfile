@@ -20,12 +20,17 @@ ENV PHP_RUNTIME_DEPS \
         libsodium23 \
         libssl1.1 \
         libargon2-1 \
-        libxml2
+        libmemcached11 \
+        libxml2 \
+        git \
+        unzip
 ENV APP_DIR /app
 ENV PHP_INI_DIR /etc/php
 ENV PHP_DOWNLOAD_DIR /usr/local/src/tarballs
 ENV PHP_SOURCE_DIR /usr/local/src/php/source
 ENV PHP_COMPILE_DIR /usr/local/src/php/compile
+ENV MODULES_DIR /usr/local/src/modules
+ENV MODULES_DOWNLOAD_DIR $MODULES_DIR/tarballs
 ENV PHP_ARCHIVE_FILE php.tar.xz
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 ENV PHP_CPPFLAGS="$PHP_CFLAGS"
@@ -41,8 +46,7 @@ ENV PHP_COMPILE_DEPS \
     libonig-dev \
     libxml2-dev \
     libargon2-0-dev \
-    git \
-    unzip
+    libmemcached-dev
 ENV PHP_CONFIG_OPTIONS \
     --disable-all \
     --enable-static \
@@ -65,10 +69,13 @@ ENV PHP_CONFIG_OPTIONS \
     --with-curl \
     --with-libedit \
     --with-zlib \
+    --with-tsrm-pthreads \
     --with-openssl \
     --enable-phar \
     --enable-dom \
     --enable-pdo \
+    --with-pdo-mysql \
+    --enable-pcntl \
     --enable-xml \
     --enable-filter
 RUN set -eux; \
@@ -147,8 +154,39 @@ RUN export \
     cp -v $PHP_SOURCE_DIR/php.ini-* "$PHP_INI_DIR/"; \
     cd / ; \
     rm -rf $PHP_DOWNLOAD_DIR ; \
+    mkdir -p $MODULES_DOWNLOAD_DIR; \
+    cd $MODULES_DOWNLOAD_DIR; \
+    git clone https://github.com/igbinary/igbinary.git igbinary; \
+    git clone https://github.com/phpredis/phpredis.git phpredis; \
+    git clone https://github.com/php-memcached-dev/php-memcached.git memcached; \
+    cd igbinary; \
+    phpize; \
+    ./configure CFLAGS="-O2 -g" \
+        --enable-igbinary ; \
+    make -j "$(nproc)"; \
+    find -type f -name '*.a' -delete; \
+    make install; \
+    cd $MODULES_DOWNLOAD_DIR/phpredis; \
+    phpize; \
+    ./configure \
+        --enable-redis-igbinary \
+    ; \
+    make -j "$(nproc)"; \
+    find -type f -name '*.a' -delete; \
+    make install; \
+    cd $MODULES_DOWNLOAD_DIR/memcached; \
+    phpize; \
+    ./configure CFLAGS="-O2 -g" \
+        --enable-memcached \
+        --enable-memcached-igbinary \
+     ;\
+    make -j "$(nproc)"; \
+    find -type f -name '*.a' -delete; \
+    make install; \
+    cd / ; \
     rm -rf $PHP_SOURCE_DIR ; \
     rm -rf $PHP_COMPILE_DIR; \
+    rm -rf $MODULES_DIR ; \
     apt-mark auto '.*' > /dev/null; \
     [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
     find /usr/local -type f -executable -exec ldd '{}' ';' \
@@ -161,5 +199,13 @@ RUN export \
     	; \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     echo "extension = sodium.so" > $PHP_INI_DIR/conf.d/10-sodium.ini ; \
-    php -v;
+    echo "extension = igbinary.so" > $PHP_INI_DIR/conf.d/11-igbinary.ini ; \
+    echo "extension = redis.so " > $PHP_INI_DIR/conf.d/11-redis.ini ; \
+    echo "extension = memcached.so " > $PHP_INI_DIR/conf.d/12-memcached.ini ; \
+    php -v; \
+    curl -fsSL -o composer.phar 'https://getcomposer.org/composer.phar'; \
+    mv composer.phar /usr/bin/composer; \
+    chmod +x /usr/bin/composer;
+USER app
+RUN composer global require hirak/prestissimo
 CMD ["php", "-a"]
