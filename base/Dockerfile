@@ -104,6 +104,9 @@ ENV PHP_CONFIG_OPTIONS \
     --enable-dom \
     --enable-pdo \
     --with-pdo-mysql \
+    --enable-sigchild \
+    --enable-zend-signals \
+    --enable-pcntl \
     --enable-filter
 RUN export \
 		CFLAGS="$PHP_CFLAGS" \
