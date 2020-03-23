@@ -3,12 +3,6 @@ ENV PHP_VERSION 7.4.4
 MAINTAINER noramarth@aom.ro
 ENV USER app
 ENV GROUP app
-RUN set -eux; \
-	{ \
-		echo 'Package: php*'; \
-		echo 'Pin: release *'; \
-		echo 'Pin-Priority: -1'; \
-	} > /etc/apt/preferences.d/no-debian-php
 ENV PHPIZE_DEPS \
 		autoconf \
 		dpkg-dev dpkg \
@@ -25,49 +19,21 @@ ENV PHP_RUNTIME_DEPS \
         libedit2 \
         libsodium23 \
         libssl1.1 \
-        libxml2 \
-        libargon2-1
-RUN set -eux; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-	ca-certificates \
-	curl \
-	xz-utils \
-	$PHP_RUNTIME_DEPS \
-	; \
-	rm -rf /var/lib/apt/lists/*;
+        libargon2-1 \
+        libmemcached11 \
+        libxml2
 ENV APP_DIR /app
 ENV PHP_INI_DIR /etc/php
-ENV PHP_DOWNLOAD_DIR /usr/local/src
-ENV PHP_SOURCE_DIR $PHP_DOWNLOAD_DIR/php/source
-ENV PHP_COMPILE_DIR $PHP_DOWNLOAD_DIR/php/compile
+ENV PHP_DOWNLOAD_DIR /usr/local/src/tarballs
+ENV PHP_SOURCE_DIR /usr/local/src/php/source
+ENV PHP_COMPILE_DIR /usr/local/src/php/compile
+ENV MODULES_DIR /usr/local/src/modules
+ENV MODULES_DOWNLOAD_DIR $MODULES_DIR/tarballs
 ENV PHP_ARCHIVE_FILE php.tar.xz
-RUN set -eux; \
-	mkdir -p "$PHP_INI_DIR/conf.d"; \
-    # allow running as an arbitrary user (https://github.com/docker-library/php/issues/743)
-	mkdir -p $APP_DIR; \
-	groupadd -r $GROUP && useradd -r -g $GROUP $USER; \
-	mkdir -p /home/$USER; \
-	chown $USER:$GROUP /home/$USER; \
-	chown $USER:$GROUP $APP_DIR; \
-	chmod 777 $APP_DIR
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
 ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -Wl,--hash-style=both -pie"
 ENV PHP_URL="https://www.php.net/get/php-$PHP_VERSION.tar.xz/from/this/mirror"
-RUN set -eux; \
-	\
-	savedAptMark="$(apt-mark showmanual)"; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends dirmngr ; \
-	rm -rf /var/lib/apt/lists/*; \
-    mkdir -p $PHP_DOWNLOAD_DIR; \
-    cd $PHP_DOWNLOAD_DIR; \
-    \
-    curl -fsSL -o $PHP_ARCHIVE_FILE "$PHP_URL"; \
-    apt-mark auto '.*' > /dev/null; \
-    apt-mark manual $savedAptMark > /dev/null; \
-    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
 ENV PHP_COMPILE_DEPS \
     libcurl4-openssl-dev \
     libedit-dev \
@@ -76,7 +42,11 @@ ENV PHP_COMPILE_DEPS \
     libxml2-dev \
     zlib1g-dev \
     libonig-dev \
-    libargon2-0-dev
+    libxml2-dev \
+    libargon2-0-dev \
+    libmemcached-dev \
+    git \
+    unzip
 ENV PHP_CONFIG_OPTIONS \
     --disable-all \
     --enable-static \
@@ -100,11 +70,49 @@ ENV PHP_CONFIG_OPTIONS \
     --with-libedit \
     --with-zlib \
     --with-openssl \
+    --enable-phar \
     --enable-dom \
     --enable-pdo \
     --with-pdo-mysql \
     --enable-xml \
     --enable-filter
+RUN set -eux; \
+	{ \
+		echo 'Package: php*'; \
+		echo 'Pin: release *'; \
+		echo 'Pin-Priority: -1'; \
+	} > /etc/apt/preferences.d/no-debian-php; \
+	mkdir -p "$PHP_INI_DIR/conf.d"; \
+    # allow running as an arbitrary user (https://github.com/docker-library/php/issues/743)
+	mkdir -p $APP_DIR; \
+	groupadd -r $GROUP && useradd -r -g $GROUP $USER; \
+	mkdir -p /home/$USER; \
+	chown $USER:$GROUP /home/$USER; \
+	chown $USER:$GROUP $APP_DIR; \
+	chmod 777 $APP_DIR
+RUN set -eux; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends \
+	ca-certificates \
+	curl \
+	xz-utils \
+	$PHP_RUNTIME_DEPS \
+	; \
+	rm -rf /var/lib/apt/lists/*;
+RUN set -eux; \
+	\
+	savedAptMark="$(apt-mark showmanual)"; \
+	apt-get update; \
+	apt-get install -y --no-install-recommends dirmngr ; \
+	rm -rf /var/lib/apt/lists/*; \
+    mkdir -p $PHP_DOWNLOAD_DIR; \
+    cd $PHP_DOWNLOAD_DIR; \
+    \
+    curl -fsSL -o $PHP_ARCHIVE_FILE "$PHP_URL"; \
+    apt-mark auto '.*' > /dev/null; \
+    apt-mark manual $savedAptMark > /dev/null; \
+    apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false
+
 RUN export \
 		CFLAGS="$PHP_CFLAGS" \
 		CPPFLAGS="$PHP_CPPFLAGS" \
@@ -144,6 +152,39 @@ RUN export \
     cp -v $PHP_SOURCE_DIR/php.ini-* "$PHP_INI_DIR/"; \
     cd / ; \
     rm -rf $PHP_DOWNLOAD_DIR ; \
+    mkdir -p $MODULES_DOWNLOAD_DIR; \
+    cd $MODULES_DOWNLOAD_DIR; \
+    git clone https://github.com/igbinary/igbinary.git igbinary; \
+    git clone https://github.com/phpredis/phpredis.git phpredis; \
+    git clone https://github.com/php-memcached-dev/php-memcached.git memcached; \
+    cd igbinary; \
+    phpize; \
+    ./configure CFLAGS="-O2 -g" \
+        --enable-igbinary ; \
+    make -j "$(nproc)"; \
+    find -type f -name '*.a' -delete; \
+    make install; \
+    cd $MODULES_DOWNLOAD_DIR/phpredis; \
+    phpize; \
+    ./configure \
+        --enable-redis-igbinary \
+    ; \
+    make -j "$(nproc)"; \
+    find -type f -name '*.a' -delete; \
+    make install; \
+    cd $MODULES_DOWNLOAD_DIR/memcached; \
+    phpize; \
+    ./configure CFLAGS="-O2 -g" \
+        --enable-memcached \
+        --enable-memcached-igbinary \
+     ;\
+    make -j "$(nproc)"; \
+    find -type f -name '*.a' -delete; \
+    make install; \
+    cd / ; \
+    rm -rf $PHP_SOURCE_DIR ; \
+    rm -rf $PHP_COMPILE_DIR; \
+    rm -rf $MODULES_DIR ; \
     apt-mark auto '.*' > /dev/null; \
     [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
     find /usr/local -type f -executable -exec ldd '{}' ';' \
@@ -156,5 +197,8 @@ RUN export \
     	; \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     echo "extension = sodium.so" > $PHP_INI_DIR/conf.d/10-sodium.ini ; \
+    echo "extension = igbinary.so" > $PHP_INI_DIR/conf.d/11-igbinary.ini ; \
+    echo "extension = redis.so " > $PHP_INI_DIR/conf.d/11-redis.ini ; \
+    echo "extension = memcached.so " > $PHP_INI_DIR/conf.d/12-memcached.ini ; \
     php -v;
 CMD ["php", "-a"]

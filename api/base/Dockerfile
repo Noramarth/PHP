@@ -76,6 +76,7 @@ ENV PHP_CONFIG_OPTIONS \
     --enable-pdo \
     --with-pdo-mysql \
     --enable-pcntl \
+    --enable-posix \
     --enable-xml \
     --enable-filter
 RUN set -eux; \
