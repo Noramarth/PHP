@@ -52,6 +52,7 @@ ENV PHP_CONFIG_OPTIONS \
     --enable-static \
     --enable-option-checking=fatal \
     --enable-cli \
+    --enable-fpm \
     --enable-ctype \
     --with-iconv \
     --enable-json \
