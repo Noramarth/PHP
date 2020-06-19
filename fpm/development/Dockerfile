@@ -52,7 +52,7 @@ ENV PHP_COMPILE_DEPS \
     libonig-dev \
     libxml2-dev \
     libargon2-0-dev \
-    libmemcached-dev \
+    libmemcached-dev
 ENV PHP_CONFIG_OPTIONS \
     --disable-all \
     --enable-static \
