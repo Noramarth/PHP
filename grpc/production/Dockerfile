@@ -29,9 +29,7 @@ ENV PHP_RUNTIME_DEPS \
         libxml2 \
         libgrpc++1 \
         libprotobuf17 \
-        libprotoc17 \
-        git \
-        unzip
+        libprotoc17
 ENV APP_DIR /app
 ENV PHP_INI_DIR /etc/php
 ENV PHP_DOWNLOAD_DIR /usr/local/src/tarballs
@@ -57,7 +55,9 @@ ENV PHP_COMPILE_DEPS \
     libmemcached-dev \
     libgrpc-dev \
     libprotobuf-dev\
-    libprotoc-dev
+    libprotoc-dev \
+    git \
+    unzip
 ENV PHP_CONFIG_OPTIONS \
     --disable-all \
     --enable-static \
@@ -229,10 +229,6 @@ RUN set -eux; \
     echo "extension = mongodb.so" > $PHP_INI_DIR/conf.d/30-mongodb.ini; \
     echo "extension = grpc.so" > $PHP_INI_DIR/conf.d/40-pgrpc.ini; \
     echo "extension = protobuf.so" > $PHP_INI_DIR/conf.d/40-protobuf.ini; \
-    curl -fsSL -o composer.phar 'https://getcomposer.org/composer.phar'; \
-    mv composer.phar /usr/bin/composer; \
-    chmod +x /usr/bin/composer; \
-    composer self-update; \
     apt-mark auto '.*' > /dev/null; \
     [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
     find /usr/local -type f -executable -exec ldd '{}' ';' \
