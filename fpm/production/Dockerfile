@@ -227,3 +227,5 @@ RUN unset CFLAGS \
     && unset PHP_ARCHIVE_FILE \
     && unset PHP_COMPILE_DEPS \
     && unset PHP_CONFIG_OPTIONS
+
+CMD ["php-fpm"]

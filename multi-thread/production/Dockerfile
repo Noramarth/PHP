@@ -26,10 +26,7 @@ ENV PHP_RUNTIME_DEPS \
         libssl1.1 \
         libargon2-1 \
         libmemcached11 \
-        libxml2 \
-        git \
-        unzip \
-        curl
+        libxml2
 ENV APP_DIR /app
 ENV PHP_INI_DIR /etc/php
 ENV PHP_DOWNLOAD_DIR /usr/local/src/tarballs
@@ -52,13 +49,15 @@ ENV PHP_COMPILE_DEPS \
     libonig-dev \
     libxml2-dev \
     libargon2-0-dev \
-    libmemcached-dev
+    libc6-dev \
+    libmemcached-dev \
+    git \
+    unzip
 ENV PHP_CONFIG_OPTIONS \
     --disable-all \
     --enable-static \
     --enable-option-checking=fatal \
     --enable-cli \
-    --enable-fpm \
     --enable-ctype \
     --with-iconv \
     --enable-json \
@@ -82,10 +81,12 @@ ENV PHP_CONFIG_OPTIONS \
     --enable-dom \
     --enable-pdo \
     --with-pdo-mysql \
+    --enable-pcntl \
+    --enable-posix \
     --enable-sockets \
     --enable-xml \
-    --enable-filter
-
+    --enable-filter \
+    --enable-maintainer-zts
 RUN set -eux; \
 	{ \
 		echo 'Package: php*' \
@@ -115,6 +116,7 @@ RUN set -eux; \
 	    autotools-dev \
 	    libtool \
 	    build-essential \
+	    curl \
         ca-certificates \
         xz-utils \
         $PHP_COMPILE_DEPS \
@@ -157,6 +159,7 @@ RUN set -eux; \
     git clone -q https://github.com/phpredis/phpredis.git phpredis; \
     git clone -q https://github.com/php-memcached-dev/php-memcached.git memcached; \
     git clone -q https://github.com/mongodb/mongo-php-driver.git mongodb; \
+    git clone -q https://github.com/krakjoe/parallel.git parallel; \
     cd $MODULES_DOWNLOAD_DIR/igbinary; \
     phpize; \
     ./configure CFLAGS="-O2 -g" \
@@ -189,10 +192,19 @@ RUN set -eux; \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
+    cd $MODULES_DOWNLOAD_DIR/parallel; \
+    phpize; \
+    ./configure \
+        CFLAGS="-O2 -g" \
+        --enable-parallel; \
+    make -j "$(nproc)"; \
+    find -type f -name '*.a' -delete; \
+    make install; \
     cd / ;\
     rm -rf $PHP_SOURCE_DIR; \
     rm -rf $PHP_COMPILE_DIR; \
     rm -rf $MODULES_DIR; \
+    echo "extension = parallel.so" > $PHP_INI_DIR/conf.d/5-parallel.ini; \
     echo "extension = sodium.so" > $PHP_INI_DIR/conf.d/10-sodium.ini; \
     echo "extension = igbinary.so" > $PHP_INI_DIR/conf.d/10-igbinary.ini; \
     echo "extension = redis.so " > $PHP_INI_DIR/conf.d/20-redis.ini; \
@@ -231,5 +243,3 @@ RUN unset CFLAGS \
     && unset PHP_ARCHIVE_FILE \
     && unset PHP_COMPILE_DEPS \
     && unset PHP_CONFIG_OPTIONS
-
-CMD ["php-fpm"]
