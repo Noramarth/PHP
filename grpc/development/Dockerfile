@@ -27,17 +27,15 @@ ENV PHP_RUNTIME_DEPS \
         libargon2-1 \
         libmemcached11 \
         libxml2 \
-        libgrpc++1 \
-        libprotobuf17 \
-        libprotoc17 \
         git \
         unzip
 ENV APP_DIR /app
 ENV PHP_INI_DIR /etc/php
-ENV PHP_DOWNLOAD_DIR /usr/local/src/tarballs
-ENV PHP_SOURCE_DIR /usr/local/src/php/source
-ENV PHP_COMPILE_DIR /usr/local/src/php/compile
-ENV MODULES_DIR /usr/local/src/modules
+ENV SOURCE_DIR /usr/local/src
+ENV PHP_DOWNLOAD_DIR $SOURCE_DIR/tarballs
+ENV PHP_SOURCE_DIR $SOURCE_DIR/php/source
+ENV PHP_COMPILE_DIR $SOURCE_DIR/php/compile
+ENV MODULES_DIR $SOURCE_DIR/modules
 ENV MODULES_DOWNLOAD_DIR $MODULES_DIR/tarballs
 ENV PHP_ARCHIVE_FILE php.tar.xz
 ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
@@ -54,10 +52,7 @@ ENV PHP_COMPILE_DEPS \
     libonig-dev \
     libxml2-dev \
     libargon2-0-dev \
-    libmemcached-dev \
-    libgrpc-dev \
-    libprotobuf-dev\
-    libprotoc-dev
+    libmemcached-dev
 ENV PHP_CONFIG_OPTIONS \
     --disable-all \
     --enable-static \
@@ -164,8 +159,7 @@ RUN set -eux; \
     git clone -q https://github.com/phpredis/phpredis.git phpredis; \
     git clone -q https://github.com/php-memcached-dev/php-memcached.git memcached; \
     git clone -q https://github.com/mongodb/mongo-php-driver.git mongodb; \
-    curl -fsSL https://pecl.php.net/get/grpc-1.29.1.tgz -o grpc.tar.gz; \
-    curl -fsSl https://pecl.php.net/get/protobuf-3.12.2.tgz -o protobuf.tar.gz; \
+    git clone -q -b v1.29.1 https://github.com/grpc/grpc grpc; \
     cd $MODULES_DOWNLOAD_DIR/igbinary; \
     phpize; \
     ./configure CFLAGS="-O2 -g" \
@@ -188,26 +182,6 @@ RUN set -eux; \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
-    cd $MODULES_DOWNLOAD_DIR/ ; \
-    mkdir grpc; \
-    tar -xf grpc.tar.gz -C grpc --strip-components=1; \
-    cd grpc ;\
-    phpize; \
-    ./configure CFLAGS="-O2 -g" \
-        --enable-grpc; \
-    make -j "$(nproc)"; \
-    find -type f -name '*.a' -delete; \
-    make install; \
-    cd $MODULES_DOWNLOAD_DIR/ ; \
-    mkdir protobuf; \
-    tar -xf protobuf.tar.gz -C protobuf --strip-components=1; \
-    cd protobuf ;\
-    phpize; \
-    ./configure CFLAGS="-O2 -g" \
-        --enable-protobuf; \
-    make -j "$(nproc)"; \
-    find -type f -name '*.a' -delete; \
-    make install; \
     cd $MODULES_DOWNLOAD_DIR/mongodb; \
     git submodule update --init; \
     phpize; \
@@ -218,10 +192,32 @@ RUN set -eux; \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
+    cd $MODULES_DOWNLOAD_DIR/grpc; \
+    git submodule update --init; \
+    make -j "$(nproc)"; \
+    make install; \
+    cd src/php/ext/grpc; \
+    phpize; \
+    ./configure \
+        CFLAGS="-O2 -g" \
+        --enable-grpc; \
+    make -j "$(nproc)"; \
+    make install; \
+    cd $MODULES_DOWNLOAD_DIR/grpc/third_party/protobuf; \
+    ./autogen.sh; \
+    ./configure \
+        --with-zlib; \
+    make -j "$(nproc)" ; \
+    make install; \
+    cd php/ext/google/protobuf; \
+    phpize; \
+    ./configure \
+        CFLAGS="-O2 -g" \
+        --enable-protobuf; \
+    make -j "$(nproc)" ; \
+    make install; \
     cd / ;\
-    rm -rf $PHP_SOURCE_DIR; \
-    rm -rf $PHP_COMPILE_DIR; \
-    rm -rf $MODULES_DIR; \
+    rm -rf $SOURCE_DIR/*; \
     echo "extension = sodium.so" > $PHP_INI_DIR/conf.d/10-sodium.ini; \
     echo "extension = igbinary.so" > $PHP_INI_DIR/conf.d/10-igbinary.ini; \
     echo "extension = redis.so " > $PHP_INI_DIR/conf.d/20-redis.ini; \
@@ -244,11 +240,8 @@ RUN set -eux; \
         | xargs -r apt-mark manual; \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
     rm -rf /tmp/*; \
-    php -v; \
-    php -m
-
-#Cleaning ENV Vars we don't need
-RUN unset CFLAGS \
+    rm -rf /usr/local/include/*; \
+    unset CFLAGS \
     && unset CPPFLAGS \
     && unset LDFLAGS \
     && unset APP_DIR \
@@ -261,4 +254,7 @@ RUN unset CFLAGS \
     && unset MODULES_DOWNLOAD_DIR \
     && unset PHP_ARCHIVE_FILE \
     && unset PHP_COMPILE_DEPS \
-    && unset PHP_CONFIG_OPTIONS
+    && unset PHP_CONFIG_OPTIONS \
+    && unset SOURCE_DIR; \
+    php -v; \
+    php -m

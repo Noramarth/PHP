@@ -2,10 +2,12 @@
 
 Package details (latest)
 
-PHP_VERSION 7.4.4, 
-PROTOBUFF_VERSION 3.12.3 (for grpc images)
+PHP_VERSION 7.4.6,  
+PROTOBUFF_VERSION 3.12.3 (for grpc images)  
+GRPC_VERSION 1.29.1  
 
-Dev versions includes: `git`, `composer` latest version at the time of the build
+All *`dev`* versions includes: `git`, `composer` latest version at the time of the build
+GRPC *`dev`* version contains the `protoc` and `grpc`_php_plugin binaries 
 
 Available PHP modules:
 
@@ -121,11 +123,12 @@ FPM version:
 
 
 ## NOTE:  
-These are custom builds! in case you want to add to them here's info you need to extend them:  
+These are custom builds! in case you want to add to them here's info you need to extend them:
+- Images for the CLI, Multi-Thread and GRPC versions **DO NOT** have CMD lines as they should be customized anywway according to your needs.  
 - PHP INI files are in /etc/php.
 - Always compile your modules, do not use pecl:  
 
-code to make your life easier:  
+code additions to make your life easier in case you want to add modules:  
 ```
 FROM <base image>
 
