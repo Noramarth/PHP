@@ -2,7 +2,7 @@
 
 Package details (latest)
 
-PHP_VERSION 7.4.6,  
+PHP_VERSION 7.4.9,  
 PROTOBUFF_VERSION 3.12.3 (for grpc images)  
 GRPC_VERSION 1.29.1  
 

@@ -1,6 +1,6 @@
 FROM debian:buster-slim
 
-ENV PHP_VERSION 7.4.6
+ENV PHP_VERSION 7.4.9
 ENV PROTOBUFF_VERSION 3.12.3
 
 MAINTAINER noramarth@aom.ro
