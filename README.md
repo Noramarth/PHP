@@ -1,5 +1,7 @@
 # PHP Custom images
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
+
 Package details (latest)
 
 PHP_VERSION 7.4.9,  
