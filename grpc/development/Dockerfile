@@ -179,14 +179,16 @@ RUN set -eux; \
     cd $MODULES_DOWNLOAD_DIR/igbinary; \
     phpize; \
     ./configure CFLAGS="-O2 -g" \
-        --enable-igbinary; \
+        --enable-igbinary \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
     cd $MODULES_DOWNLOAD_DIR/phpredis; \
     phpize; \
     ./configure \
-        --enable-redis-igbinary; \
+        --enable-redis \
+        --enable-redis-igbinary \
+        --disable-redis-session; \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
