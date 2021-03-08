@@ -39,7 +39,7 @@ RUN set -eux; \
     rm -rf /var/lib/apt/lists/*; \
     mkdir -p /usr/local/src; \
     cd /usr/local/src; \
-    git clone -b v1.34.0 https://github.com/grpc/grpc; \
+    git clone -b v1.36.2 https://github.com/grpc/grpc; \
     cd grpc ; \
     git submodule update --init --recursive; \
     #install ABSEIL
@@ -111,7 +111,7 @@ RUN set -eux; \
     savedAptMark="$(apt-mark showmanual)"; \
     apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            lsb-core \
+            lsb-release \
             software-properties-common \
             gnupg \
             apt-transport-https \

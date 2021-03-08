@@ -187,6 +187,7 @@ RUN set -eux; \
     cd $MODULES_DOWNLOAD_DIR/phpredis; \
     phpize; \
     ./configure \
+        --enable-redis \
         --enable-redis-igbinary; \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \

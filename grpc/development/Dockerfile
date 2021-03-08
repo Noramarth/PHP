@@ -179,7 +179,7 @@ RUN set -eux; \
     cd $MODULES_DOWNLOAD_DIR/igbinary; \
     phpize; \
     ./configure CFLAGS="-O2 -g" \
-        --enable-igbinary \
+        --enable-igbinary; \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
