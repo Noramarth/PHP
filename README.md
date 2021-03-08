@@ -139,7 +139,24 @@ ZTS (Multithread version):
 `zts`,
 `parallel`
 
+###New addition: 
+Protobuf compiler image
 
+In order to use it:
+
+####Examples:
+
+######For PHP Classes generation:
+```shell
+buffers=$(find . -name '*.proto' -type f -printf "/<path to proto files>/%P ");
+docker run -it -v "$BUFFERS_DIRECTORY":/opt/proto -v "$PHP_CLASSES_DIRECTORY":/opt/php_out aomgroup/proto-builder protoc --php_out=/opt/php_out --php-grpc_out=/opt/php_out --proto_path=/opt/proto $buffers;
+```
+
+######For JS Classes generation:
+```shell
+buffers=$(find . -name '*.proto' -type f -printf "/<path to proto files>/%P ");
+docker run -it -v "$BUFFERS_DIRECTORY":/opt/proto -v "$JS_CLASSES_DIRECTORY":/opt/js_out aomgroup/proto-builder protoc  -I=/opt/proto $buffers --js_out=import_style=commonjs:/opt/js_out --grpc-web_out=import_style=commonjs,mode=grpcwebtext:/opt/js_out;
+```
 
 ## NOTE:  
 These are custom builds! in case you want to add to them here's info you need to extend them:
