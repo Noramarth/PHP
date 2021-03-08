@@ -1,7 +1,6 @@
 FROM debian:buster-slim
 
-ENV PHP_VERSION 7.4.9
-ENV PROTOBUFF_VERSION 3.12.3
+ENV PHP_VERSION 8.0.2
 
 MAINTAINER noramarth@aom.ro
 
@@ -19,17 +18,17 @@ ENV PHPIZE_DEPS \
 		pkgconf \
 		re2c
 ENV PHP_RUNTIME_DEPS \
+        curl \
+        git \
+        ca-certificates \
         libcurl4 \
         libonig5 \
         libedit2 \
         libsodium23 \
         libssl1.1 \
         libargon2-1 \
-        libmemcached11 \
-        libxml2 \
-        libgrpc++1 \
-        libprotobuf17 \
-        libprotoc17
+        libyaml-0-2 \
+        libxml2
 ENV APP_DIR /app
 ENV PHP_INI_DIR /etc/php
 ENV PHP_DOWNLOAD_DIR /usr/local/src/tarballs
@@ -52,45 +51,61 @@ ENV PHP_COMPILE_DEPS \
     libonig-dev \
     libxml2-dev \
     libargon2-0-dev \
-    libmemcached-dev \
-    libgrpc-dev \
-    libprotobuf-dev\
-    libprotoc-dev \
-    git \
+    libc6-dev \
+    libyaml-dev \
+    libpng-dev \
+    libwebp-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libgmp-dev \
+    libzip-dev \
     unzip
 ENV PHP_CONFIG_OPTIONS \
     --disable-all \
-    --enable-static \
     --enable-option-checking=fatal \
     --enable-cli \
     --enable-ctype \
-    --with-iconv \
-    --enable-json \
-    --with-pcre-jit \
-    --enable-session \
-    --enable-tokenizer \
-    --with-libxml \
-    --enable-simplexml \
-    --enable-opcache \
-    --enable-mysqlnd \
-    --with-sodium=shared \
-    --with-password-argon2 \
-    --with-mhash \
-    --enable-mbstring \
-    --with-curl \
-    --with-libedit \
-    --with-zlib \
-    --with-tsrm-pthreads \
-    --with-openssl \
-    --enable-phar \
     --enable-dom \
-    --enable-pdo \
-    --with-pdo-mysql \
+    --enable-fileinfo \
+    --enable-ftp \
+    --enable-gd \
+    --enable-intl \
+    --enable-filter \
+    --enable-mbstring \
+    --enable-mysqlnd \
+    --enable-opcache \
+    --enable-opcache-jit \
     --enable-pcntl \
+    --enable-phar \
+    --enable-pdo \
     --enable-posix \
+    --enable-session \
+    --enable-simplexml \
+    --enable-sysvmsg \
+    --enable-sysvsem \
+    --enable-sysvshm \
     --enable-sockets \
+    --enable-static \
+    --enable-tokenizer \
     --enable-xml \
-    --enable-filter
+    --enable-xmlreader \
+    --enable-zts \
+    --with-curl \
+    --with-freetype \
+    --with-gmp \
+    --with-iconv \
+    --with-jpeg \
+    --with-libedit \
+    --with-libxml \
+    --with-mhash \
+    --with-openssl \
+    --with-password-argon2 \
+    --with-pcre-jit \
+    --with-pdo-mysql \
+    --with-sodium=shared \
+    --with-zip \
+    --with-zlib \
+    --with-webp
 
 RUN set -eux; \
 	{ \
@@ -121,8 +136,6 @@ RUN set -eux; \
 	    autotools-dev \
 	    libtool \
 	    build-essential \
-	    curl \
-        ca-certificates \
         xz-utils \
         $PHP_COMPILE_DEPS \
         $PHPIZE_DEPS; \
@@ -141,7 +154,7 @@ RUN set -eux; \
 	mkdir -p $PHP_SOURCE_DIR; \
 	tar -xf $PHP_DOWNLOAD_DIR/$PHP_ARCHIVE_FILE -C $PHP_SOURCE_DIR --strip-components=1; \
 	rm -rf PHP_DOWNLOAD_DIR; \
-    mkdir -p $PHP_COMPILE_DIR; \
+	mkdir -p $PHP_COMPILE_DIR; \
     cd $PHP_SOURCE_DIR; \
     ./buildconf --force; \
     cd $PHP_COMPILE_DIR; \
@@ -162,10 +175,8 @@ RUN set -eux; \
     cd $MODULES_DOWNLOAD_DIR; \
     git clone -q https://github.com/igbinary/igbinary.git igbinary; \
     git clone -q https://github.com/phpredis/phpredis.git phpredis; \
-    git clone -q https://github.com/php-memcached-dev/php-memcached.git memcached; \
-    git clone -q https://github.com/mongodb/mongo-php-driver.git mongodb; \
-    curl -fsSL https://pecl.php.net/get/grpc-1.29.1.tgz -o grpc.tar.gz; \
-    curl -fsSl https://pecl.php.net/get/protobuf-3.12.2.tgz -o protobuf.tar.gz; \
+    git clone -q https://github.com/krakjoe/apcu.git apcu; \
+    git clone -q https://github.com/php/pecl-file_formats-yaml.git yaml; \
     cd $MODULES_DOWNLOAD_DIR/igbinary; \
     phpize; \
     ./configure CFLAGS="-O2 -g" \
@@ -180,41 +191,16 @@ RUN set -eux; \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
-    cd $MODULES_DOWNLOAD_DIR/memcached; \
+    cd $MODULES_DOWNLOAD_DIR/apcu; \
     phpize; \
-    ./configure CFLAGS="-O2 -g" \
-        --enable-memcached \
-        --enable-memcached-igbinary; \
+    ./configure; \
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
-    cd $MODULES_DOWNLOAD_DIR/ ; \
-    mkdir grpc; \
-    tar -xf grpc.tar.gz -C grpc --strip-components=1; \
-    cd grpc ;\
-    phpize; \
-    ./configure CFLAGS="-O2 -g" \
-        --enable-grpc; \
-    make -j "$(nproc)"; \
-    find -type f -name '*.a' -delete; \
-    make install; \
-    cd $MODULES_DOWNLOAD_DIR/ ; \
-    mkdir protobuf; \
-    tar -xf protobuf.tar.gz -C protobuf --strip-components=1; \
-    cd protobuf ;\
-    phpize; \
-    ./configure CFLAGS="-O2 -g" \
-        --enable-protobuf; \
-    make -j "$(nproc)"; \
-    find -type f -name '*.a' -delete; \
-    make install; \
-    cd $MODULES_DOWNLOAD_DIR/mongodb; \
-    git submodule update --init; \
+    cd $MODULES_DOWNLOAD_DIR/yaml; \
     phpize; \
     ./configure \
-        CFLAGS="-O2 -g" \
-        --enable-shared \
-        --enable-mongodb; \
+        --with-yaml ;\
     make -j "$(nproc)"; \
     find -type f -name '*.a' -delete; \
     make install; \
@@ -222,13 +208,16 @@ RUN set -eux; \
     rm -rf $PHP_SOURCE_DIR; \
     rm -rf $PHP_COMPILE_DIR; \
     rm -rf $MODULES_DIR; \
+    echo "extension = apcu.so " > $PHP_INI_DIR/conf.d/10-apcu.ini; \
+    echo "extension = yaml.so " > $PHP_INI_DIR/conf.d/10-yaml.ini; \
     echo "extension = sodium.so" > $PHP_INI_DIR/conf.d/10-sodium.ini; \
     echo "extension = igbinary.so" > $PHP_INI_DIR/conf.d/10-igbinary.ini; \
+    echo "zend_extension = opcache.so" > $PHP_INI_DIR/conf.d/10-jit.ini; \
+    echo "opcache.enable=1" >> $PHP_INI_DIR/conf.d/10-jit.ini; \
+    echo "opcache.enable_cli=1" >> $PHP_INI_DIR/conf.d/10-jit.ini; \
+    echo "opcache.jit_buffer_size=100M" >> $PHP_INI_DIR/conf.d/10-jit.ini; \
+    echo "opcache.jit=1255" >> $PHP_INI_DIR/conf.d/10-jit.ini; \
     echo "extension = redis.so " > $PHP_INI_DIR/conf.d/20-redis.ini; \
-    echo "extension = memcached.so " > $PHP_INI_DIR/conf.d/20-memcached.ini; \
-    echo "extension = mongodb.so" > $PHP_INI_DIR/conf.d/30-mongodb.ini; \
-    echo "extension = grpc.so" > $PHP_INI_DIR/conf.d/40-pgrpc.ini; \
-    echo "extension = protobuf.so" > $PHP_INI_DIR/conf.d/40-protobuf.ini; \
     apt-mark auto '.*' > /dev/null; \
     [ -z "$savedAptMark" ] || apt-mark manual $savedAptMark; \
     find /usr/local -type f -executable -exec ldd '{}' ';' \
@@ -239,10 +228,7 @@ RUN set -eux; \
         | sort -u \
         | xargs -r apt-mark manual; \
     apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
-    rm -rf /tmp/*; \
-    php -v; \
-    php -m
-
+    rm -rf /tmp/*;
 #Cleaning ENV Vars we don't need
 RUN unset CFLAGS \
     && unset CPPFLAGS \
@@ -258,3 +244,24 @@ RUN unset CFLAGS \
     && unset PHP_ARCHIVE_FILE \
     && unset PHP_COMPILE_DEPS \
     && unset PHP_CONFIG_OPTIONS
+
+RUN mkdir -p /app/var/log/php \
+    && mkdir -p /app/var/cache/ \
+    && chown -R app:app /app \
+    && chmod -R +x /app ;
+
+COPY config/php-fpm.conf /usr/local/etc/php-fpm.conf
+COPY config/php.ini /etc/php/php.ini
+COPY config/pool.conf /etc/php/pools/pool.conf
+
+COPY entrypoint/entrypoint.sh /opt/entrypoint.sh
+
+RUN chmod +x /opt/entrypoint.sh
+
+STOPSIGNAL SIGQUIT
+
+WORKDIR /app
+
+ENTRYPOINT /opt/entrypoint.sh
+
+USER app
